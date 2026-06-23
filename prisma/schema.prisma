@@ -1,0 +1,338 @@
+generator client { provider = "prisma-client-js" }
+datasource db { provider = "postgresql" url = env("DATABASE_URL") }
+
+enum Marketplace { SHOPEE LAZADA }
+enum Country { SG MY PH TH TW VN ID }
+enum DataSource { SP_API KEEPA MANUAL }
+enum PayoutProvider { PAYONEER WORLD_FIRST OTHER }
+enum FxLockTiming { ORDER_CREATED SHIPPED }
+enum ListingStatus { DRAFT CANDIDATE NEED_CHECK READY UPLOAD_WAITING UPLOADED UPDATED ERROR STOPPED }
+enum Judgement { A B C D TEMP_OK NEED_CHECK NG }
+enum MessageStatus { UNREPLIED NEED_CHECK REPLIED }
+enum MessageCategory { STOCK_CHECK SHIPPING DISCOUNT RETURN REFUND COMPLAINT PRODUCT_DETAIL AUTHENTICITY OTHER }
+enum CsvType { NEW_LISTING UPDATE_LISTING PRICE_UPDATE STOCK_UPDATE ERROR_ONLY NEED_CHECK_ONLY }
+
+model User {
+  id String @id @default(cuid())
+  name String?
+  email String @unique
+  passwordHash String?
+  role String @default("USER")
+  plan String @default("STARTER")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  products AmazonProduct[]
+}
+
+model AmazonProduct {
+  id String @id @default(cuid())
+  userId String
+  asin String
+  amazonUrl String?
+  title String
+  brand String?
+  jan String?
+  ean String?
+  category String?
+  description String?
+  amazonPriceJpy Int?
+  fbaPriceJpy Int?
+  merchantPriceJpy Int?
+  primeAvailable Boolean @default(false)
+  stockAvailable Boolean @default(false)
+  weightKg Float?
+  lengthCm Float?
+  widthCm Float?
+  heightCm Float?
+  imageUrls Json?
+  dataSource DataSource @default(MANUAL)
+  lastFetchedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user User @relation(fields: [userId], references: [id])
+  listingDrafts ListingDraft[]
+  priceSamples MarketPriceSample[]
+
+  @@index([userId, asin])
+}
+
+model CountrySetting {
+  id String @id @default(cuid())
+  userId String
+  marketplace Marketplace
+  country Country
+  enabled Boolean @default(true)
+  defaultTitleLanguage String @default("en")
+  defaultDescriptionLanguage String @default("en")
+  allowEnglishTitle Boolean @default(true)
+  allowEnglishDescription Boolean @default(true)
+  allowLocalLanguageTitle Boolean @default(true)
+  allowLocalLanguageDescription Boolean @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@unique([userId, marketplace, country])
+}
+
+model FeeSetting {
+  id String @id @default(cuid())
+  userId String
+  marketplace Marketplace
+  country Country
+  marketplaceFeeRate Float @default(0)
+  paymentFeeRate Float @default(0)
+  payoutProvider PayoutProvider
+  payoutFeeRate Float @default(0)
+  payoutFixedFeeJpy Int @default(0)
+  otherCostJpy Int @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@unique([userId, marketplace, country])
+}
+
+model FxLockSetting {
+  id String @id @default(cuid())
+  userId String
+  marketplace Marketplace
+  country Country
+  lockTiming FxLockTiming @default(SHIPPED)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@unique([userId, marketplace, country])
+}
+
+model ExchangeRate {
+  id String @id @default(cuid())
+  baseCurrency String
+  quoteCurrency String
+  rate Float
+  source String @default("MANUAL")
+  fetchedAt DateTime @default(now())
+  createdAt DateTime @default(now())
+  @@index([baseCurrency, quoteCurrency])
+}
+
+model ListingDraft {
+  id String @id @default(cuid())
+  userId String
+  amazonProductId String
+  marketplace Marketplace
+  country Country
+  selectedForListing Boolean @default(false)
+  categoryId String?
+  categoryName String?
+  title String?
+  titleLanguage String?
+  description String?
+  descriptionLanguage String?
+  priceLocal Float?
+  currency String?
+  stock Int @default(0)
+  sku String?
+  weightKg Float?
+  lengthCm Float?
+  widthCm Float?
+  heightCm Float?
+  imageUrls Json?
+  judgement Judgement @default(NEED_CHECK)
+  status ListingStatus @default(DRAFT)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  product AmazonProduct @relation(fields: [amazonProductId], references: [id])
+  simulations PriceSimulation[]
+  @@index([userId, marketplace, country, selectedForListing])
+}
+
+model ActiveListing {
+  id String @id @default(cuid())
+  userId String
+  marketplace Marketplace
+  country Country
+  asin String
+  sku String
+  productName String
+  priceLocal Float
+  currency String
+  stock Int
+  soldCount Int @default(0)
+  status String @default("ACTIVE")
+  lastSyncedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([userId, marketplace, country, asin])
+}
+
+model SoldItem {
+  id String @id @default(cuid())
+  userId String
+  marketplace Marketplace
+  country Country
+  orderId String
+  asin String
+  sku String
+  productName String
+  sellingPriceLocal Float
+  currency String
+  fxLockTiming FxLockTiming
+  estimatedProfitJpy Int?
+  status String @default("ORDERED")
+  orderedAt DateTime
+  shippedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([userId, marketplace, country, orderedAt])
+}
+
+model MarketPriceSample {
+  id String @id @default(cuid())
+  userId String
+  marketplace Marketplace
+  country Country
+  amazonProductId String?
+  competitorUrl String?
+  competitorTitle String
+  priceLocal Float
+  currency String
+  soldCount Int?
+  reviewCount Int?
+  rating Float?
+  likes Int?
+  views Int?
+  shippingFeeLocal Float?
+  collectedAt DateTime @default(now())
+  memo String?
+  createdAt DateTime @default(now())
+  product AmazonProduct? @relation(fields: [amazonProductId], references: [id])
+  @@index([userId, marketplace, country])
+}
+
+model PriceSimulation {
+  id String @id @default(cuid())
+  userId String
+  listingDraftId String
+  marketplace Marketplace
+  country Country
+  amazonCostJpy Int
+  sellingPriceLocal Float
+  exchangeRate Float
+  sellingPriceJpy Int
+  domesticShippingJpy Int @default(0)
+  internationalShippingJpy Int?
+  packingCostJpy Int @default(0)
+  marketplaceFeeJpy Int @default(0)
+  paymentFeeJpy Int @default(0)
+  payoutFeeJpy Int @default(0)
+  payoutFixedFeeJpy Int @default(0)
+  otherCostJpy Int @default(0)
+  profitJpy Int
+  profitRate Float
+  allowableShippingJpy Int?
+  judgement Judgement @default(NEED_CHECK)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  draft ListingDraft @relation(fields: [listingDraftId], references: [id])
+}
+
+model SalesRecord {
+  id String @id @default(cuid())
+  userId String
+  marketplace Marketplace
+  country Country
+  orderId String
+  salesLocal Float
+  currency String
+  salesJpyLocked Int?
+  estimatedProfitJpy Int?
+  actualPayoutJpy Int?
+  actualPayoutFeeJpy Int?
+  actualProfitJpy Int?
+  profitDifferenceJpy Int?
+  payoutDate DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([userId, marketplace, country])
+}
+
+model AutoUpdateSetting {
+  id String @id @default(cuid())
+  userId String
+  marketplace Marketplace
+  enabled Boolean @default(false)
+  frequency String @default("MANUAL")
+  targetCountries Json?
+  priceUpdateEnabled Boolean @default(true)
+  stockUpdateEnabled Boolean @default(true)
+  stockOnlyEnabled Boolean @default(false)
+  productInfoUpdateEnabled Boolean @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model AutoUploadSetting {
+  id String @id @default(cuid())
+  userId String
+  marketplace Marketplace
+  enabled Boolean @default(false)
+  requireReview Boolean @default(true)
+  targetCountries Json?
+  uploadPrice Boolean @default(true)
+  uploadStock Boolean @default(true)
+  uploadTitle Boolean @default(false)
+  uploadDescription Boolean @default(false)
+  uploadImages Boolean @default(false)
+  uploadDimensions Boolean @default(false)
+  uploadDts Boolean @default(false)
+  stopIfNoProfit Boolean @default(true)
+  stopIfShippingMissing Boolean @default(true)
+  stopIfCategoryMissing Boolean @default(true)
+  stopIfForbiddenWord Boolean @default(true)
+  stopIfNoImage Boolean @default(true)
+  stopIfAmazonOutOfStock Boolean @default(true)
+  stopIfPriceSpike Boolean @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model CsvExport {
+  id String @id @default(cuid())
+  userId String
+  marketplace Marketplace
+  csvType CsvType
+  fileUrl String?
+  status String @default("CREATED")
+  rowCount Int @default(0)
+  createdAt DateTime @default(now())
+}
+
+model MessageThread {
+  id String @id @default(cuid())
+  userId String
+  marketplace Marketplace
+  country Country
+  shopId String?
+  buyerName String?
+  buyerId String?
+  messageText String
+  detectedLanguage String?
+  category MessageCategory @default(OTHER)
+  receivedAt DateTime
+  replyDeadline DateTime
+  status MessageStatus @default(UNREPLIED)
+  draftReply String?
+  sentReply String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([userId, marketplace, country, status])
+}
+
+model AutomationLog {
+  id String @id @default(cuid())
+  userId String
+  marketplace Marketplace?
+  action String
+  status String
+  targetCount Int @default(0)
+  successCount Int @default(0)
+  errorCount Int @default(0)
+  message String?
+  createdAt DateTime @default(now())
+}
