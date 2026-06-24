@@ -1,0 +1,2 @@
+import { NextResponse } from 'next/server';
+export async function POST(req: Request) { const body = await req.json().catch(() => ({})); const blocked = ['RETURN','REFUND','COMPLAINT','AUTHENTICITY','DISCOUNT'].includes(body.category); return NextResponse.json({ ok: true, sendAutomatically: !blocked, draft: blocked ? '内容確認が必要です。手動で返信してください。' : 'Thank you for your message. We are checking the details and will reply shortly.' }); }

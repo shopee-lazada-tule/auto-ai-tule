@@ -1,0 +1,3 @@
+import { NextResponse } from 'next/server';
+import { calculateProfit } from '@/lib/profit';
+export async function POST(req: Request) { const body = await req.json().catch(() => ({})); return NextResponse.json(calculateProfit({ sellingPriceLocal: body.sellingPriceLocal ?? 980, exchangeRate: body.exchangeRate ?? 4.99, amazonCostJpy: body.amazonCostJpy ?? 3980, marketplaceFeeRate: body.marketplaceFeeRate ?? 10, paymentFeeRate: body.paymentFeeRate ?? 2, payoutFeeRate: body.payoutFeeRate ?? 2, otherCostJpy: body.otherCostJpy ?? 100, internationalShippingJpy: body.internationalShippingJpy ?? null })); }
