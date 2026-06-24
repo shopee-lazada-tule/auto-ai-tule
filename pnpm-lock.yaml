@@ -1,6 +1,11 @@
-/// <reference types="next" />
-/// <reference types="next/image-types/global" />
-import "./.next/types/routes.d.ts";
-
-// NOTE: This file should not be edited
-// see https://nextjs.org/docs/app/api-reference/config/typescript for more information.
+DATABASE_URL=
+DIRECT_URL=
+NEXT_PUBLIC_APP_NAME=Shopee・LAZADA出品支援ツール
+CRON_SECRET=
+AMAZON_SP_API_CLIENT_ID=
+AMAZON_SP_API_CLIENT_SECRET=
+AMAZON_SP_API_REFRESH_TOKEN=
+SHOPEE_PARTNER_ID=
+SHOPEE_PARTNER_KEY=
+LAZADA_APP_KEY=
+LAZADA_APP_SECRET=

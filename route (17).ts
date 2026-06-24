@@ -1,7 +1,2 @@
 import { NextResponse } from 'next/server';
-
-export async function POST(req: Request) {
-  const text = await req.text();
-  const rows = text.trim() ? text.trim().split(/\r?\n/).length - 1 : 0;
-  return NextResponse.json({ ok: true, mode: 'mock', importedRows: Math.max(rows, 0), message: 'DB接続後に実保存へ置き換えます。' });
-}
+export async function POST(req: Request) { const body = await req.json().catch(() => ({})); return NextResponse.json({ ok: true, mode: 'dry-run', checked: 24, stopped: 3, reasons: ['送料未入力', 'カテゴリ未設定', '価格急変'], request: body }); }

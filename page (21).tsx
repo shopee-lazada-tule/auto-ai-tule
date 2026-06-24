@@ -1,4 +1,7 @@
 import { NextResponse } from 'next/server';
-import { listingRows } from '@/lib/mockData';
-export async function GET(req: Request) { const url = new URL(req.url); const marketplace = url.searchParams.get('marketplace') === 'LAZADA' ? 'LAZADA' : 'SHOPEE'; return NextResponse.json({ items: listingRows(marketplace) }); }
-export async function PATCH(req: Request) { const body = await req.json().catch(() => ({})); return NextResponse.json({ ok: true, updated: body }); }
+
+export async function POST(req: Request) {
+  const text = await req.text();
+  const rows = text.trim() ? text.trim().split(/\r?\n/).length - 1 : 0;
+  return NextResponse.json({ ok: true, mode: 'mock', importedRows: Math.max(rows, 0), message: 'DB接続後に実保存へ置き換えます。' });
+}

@@ -1,2 +1,14 @@
 import { NextResponse } from 'next/server';
-export async function POST(req: Request) { const body = await req.json().catch(() => ({})); return NextResponse.json({ ok: true, generatedCountries: body.marketplace === 'LAZADA' ? ['SG','MY','PH','TH','VN','ID'] : ['SG','MY','PH','TH','TW','VN'] }); }
+import { checkDatabaseHealth } from '@/lib/db';
+
+export const dynamic = 'force-dynamic';
+
+export async function GET() {
+  const database = await checkDatabaseHealth();
+  return NextResponse.json({
+    ok: true,
+    service: 'shopee-lazada-listing-support-tool',
+    version: '1.0.0-mock',
+    ...database,
+  });
+}
